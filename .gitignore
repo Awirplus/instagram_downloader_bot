@@ -1,0 +1,12 @@
+venv/
+temp/
+logs/
+.env
+__pycache__
+*.pyc
+*.log
+*.mp4
+*.jpg
+*.png
+*.db
+.DS_Store
