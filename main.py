@@ -7,7 +7,6 @@ from core.config import Config
 from core.logger import logger
 from services.worker import worker
 from services.cache_manager import cache_manager
-import asyncio
 
 # ============================================================
 # اپلیکیشن Flask (برای Render)
@@ -47,26 +46,32 @@ async def start_telegram():
     for i in range(Config.NUM_WORKERS):
         asyncio.create_task(worker())
         logger.info(f"✅ Worker {i+1} started")
+    # این خط باعث می‌شود ربات تا بی‌نهایت به کار خود ادامه دهد
     await asyncio.Event().wait()
 
 def run_telegram():
-    """اجرای ربات تلگرام در یک ترد جداگانه"""
+    """اجرای ربات تلگرام در یک ترد جداگانه با حلقه رویداد مخصوص خود"""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(start_telegram())
+    try:
+        loop.run_until_complete(start_telegram())
+    except Exception as e:
+        logger.error(f"Telegram bot error: {e}")
+    finally:
+        loop.close()
 
 # ============================================================
-# اجرا (وقتی گانیکورن اجرا میشه، این بخش اجرا نمیشه)
+# شروع ربات در یک ترد جداگانه (با راه‌اندازی گانیکورن)
+# ============================================================
+# این بخش کلیدی است: ربات در یک ترد daemon شروع می‌شود
+# که با اجرای گانیکورن، به کار خود ادامه می‌دهد.
+telegram_thread = threading.Thread(target=run_telegram, daemon=True)
+telegram_thread.start()
+logger.info("🚀 Telegram bot thread started.")
+
+# ============================================================
+# (اختیاری) برای اجرای محلی
 # ============================================================
 if __name__ == "__main__":
-    # برای اجرا محلی
-    threading.Thread(target=run_telegram, daemon=True).start()
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port)
-
-# ============================================================
-# وقتی گانیکورن اجرا میشه، ربات رو هم روشن کن
-# ============================================================
-# این خط باعث میشه ربات با گانیکورن روشن بشه
-thread = threading.Thread(target=run_telegram, daemon=True)
-thread.start()
