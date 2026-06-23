@@ -5,13 +5,31 @@ from core.config import Config
 from core.logger import logger
 from services.worker import worker
 from services.cache_manager import cache_manager
+from flask import Flask, jsonify
+import threading
 
-# اطمینان از وجود پوشه‌ها
-os.makedirs("temp", exist_ok=True)
-os.makedirs("logs", exist_ok=True)
+# ============================================================
+# ایجاد اپلیکیشن Flask برای Render (اشغال پورت)
+# ============================================================
+app = Flask(__name__)
 
-# ایجاد اپلیکیشن
-app = Client(
+@app.route('/')
+def home():
+    return jsonify({"status": "Bot is running!"})
+
+@app.route('/health')
+def health():
+    return jsonify({"status": "healthy"})
+
+def run_flask():
+    """اجرای سرور Flask برای اشغال پورت"""
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port)
+
+# ============================================================
+# ایجاد اپلیکیشن تلگرام
+# ============================================================
+telegram_app = Client(
     "insta_downloader_bot",
     api_id=Config.API_ID,
     api_hash=Config.API_HASH,
@@ -28,7 +46,7 @@ async def clean_cache_loop():
             logger.info(f"🧹 {removed} expired cache items removed")
 
 async def start_bot():
-    await app.start()
+    await telegram_app.start()
     logger.info("🤖 Bot is running!")
     
     asyncio.create_task(clean_cache_loop())
@@ -39,5 +57,13 @@ async def start_bot():
     
     await asyncio.Event().wait()
 
+# ============================================================
+# اجرا
+# ============================================================
 if __name__ == "__main__":
-    app.run(start_bot())
+    # اجرای Flask در یک ترد جداگانه
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    
+    # اجرای ربات تلگرام
+    telegram_app.run(start_bot())
