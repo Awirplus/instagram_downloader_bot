@@ -15,8 +15,8 @@ def setup_logger():
     )
     logger.addHandler(handler)
     
-    # خروجی در فایل
-    file_handler = logging.FileHandler("logs/bot.log")
+    # خروجی در فایل با encoding=utf-8
+    file_handler = logging.FileHandler("logs/bot.log", encoding='utf-8')
     file_handler.setFormatter(
         logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     )
